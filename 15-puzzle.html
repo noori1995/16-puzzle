@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>15 puzzle</title>
+    <style>
+        .center{
+            margin-left: auto;
+            margin-right: auto;
+            width: fit-content;
+        }
+        .item{
+            outline: 1px black solid;   
+        }
+        .puzzle-container{
+            display: grid;
+            gap: 10px;
+            outline: 3px black solid;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 class="center">
+        15 puzzle
+    </h2>
+    <div class="container center">
+        <div class="center">
+            <label for="rows">rows:</label>
+            <input type="number" name="rows" id="rows" value="4" min="2" max="10">
+
+            <label for="columns">columns:</label>
+            <input type="number" name="columns" id="columns" value="4" min="2" max="10">
+
+            <label for="width">width:</label>
+            <input type="number" name="width" id="width" value="100" min="30" max="250">
+
+            <label for="height">height:</label>
+            <input type="number" name="height" id="height" value="100" min="30" max="250">
+
+            <button id="create-button">Create</button>
+        </div>
+        <hr />
+        <br />
+        <div id="winner-div" class="center" style="display: none;">WINNER !</div>
+        <br />
+        <div class="puzzle-container center"></div>
+    </div>
+    
+</body>
+</html>
+
+
+<script>
+    const rows = document.getElementById('rows');
+    const columns = document.getElementById('columns');
+    const width = document.getElementById('width');
+    const height = document.getElementById('height');
+    const createButton = document.getElementById('create-button');
+    const puzzleContainer = document.getElementsByClassName('puzzle-container')[0];
+    const winnerDiv = document.getElementById('winner-div');
+    let i = 0
+    const winnerInterval = setInterval(() => {
+        winnerDiv.style.color = colors[i];
+        winnerDiv.style.backgroundColor = colors[i+1];
+        i++
+    if(i === colors.length-1){
+        i=0
+    }
+    },300)
+    const colors = ['#e67e22','#2ecc71', '#3498db', '#9b59b6','#bdc3c7','#7f8c8d','#f1c40f','#c0392b']
+
+    createButton.addEventListener('click', () => {
+        winnerDiv.style.display = 'none'
+        puzzleContainer.innerHTML = '';
+        let divsArray = []
+        let InvisibleDiv 
+        for(let i=0 ; i < rows.value * columns.value ; i++){
+            const newDiv = document.createElement('div');
+            newDiv.style.width = `${width.value}px`;
+            newDiv.style.height = `${height.value}px`;
+            newDiv.className = `item`;
+            newDiv.id = `item-${i+1}`;
+            newDiv.setAttribute('target-row', Math.floor(i / columns.value ) + 1)
+            newDiv.setAttribute('target-column', i % columns.value + 1)
+            if(i !== rows.value * columns.value - 1){
+                newDiv.innerText = `${i+1}`
+            }else{
+                // this is the invisible div (last div)
+                newDiv.style.outline= 'none'
+                InvisibleDiv = newDiv
+            }
+            divsArray.push(newDiv)
+        }
+        let gridTemplateColumns = ''
+        for(let i=0 ; i < columns.value ; i++){
+            gridTemplateColumns += 'auto '
+        }
+        randomisePositions(divsArray, rows.value, columns.value);
+        puzzleContainer.style.gridTemplateColumns = gridTemplateColumns
+        isGameFinished(divsArray);
+        for( let i=0 ; i < divsArray.length ; i++ ){
+            puzzleContainer.appendChild(divsArray[i])
+
+            divsArray[i].addEventListener('click', (e) => {
+                    move(e.target, InvisibleDiv);
+                    isGameFinished(divsArray);
+            })
+        }
+    })
+    const move = ( ClickedDiv, InvisibleDiv) => {
+        const clickedDivRow = Number(ClickedDiv.style.gridRow.split('/')[0]);
+        const clickedDivColumn = Number(ClickedDiv.style.gridColumn.split('/')[0]);
+        const invisibleDivRow = Number(InvisibleDiv.style.gridRow.split('/')[0]);
+        const invisibleDivColumn = Number(InvisibleDiv.style.gridColumn.split('/')[0]);
+        if (clickedDivRow === invisibleDivRow || clickedDivColumn === invisibleDivColumn){
+            if( clickedDivRow === invisibleDivRow && clickedDivColumn === invisibleDivColumn ){
+                console.log( 'invalid selection! you cant select the empty room' )
+            }
+            else{
+                if(clickedDivRow === invisibleDivRow && (clickedDivColumn - invisibleDivColumn == -1 || clickedDivColumn - invisibleDivColumn == 1) ){
+                    InvisibleDiv.style.gridColumn = clickedDivColumn;
+                    ClickedDiv.style.gridColumn = invisibleDivColumn;
+                } else if (clickedDivColumn === invisibleDivColumn && (clickedDivRow - invisibleDivRow == -1 || clickedDivRow - invisibleDivRow == 1)){
+                    InvisibleDiv.style.gridRow = clickedDivRow;
+                    ClickedDiv.style.gridRow = invisibleDivRow;
+                } else {
+                    console.log('select empty room neighbors!')
+                }
+            }
+        }else {
+            console.log( 'invalid selection!')
+        }
+    }
+    const isGameFinished = (divsArray) => {
+        for(let i = 0 ; i < divsArray.length ; i++){
+            if(Number(divsArray[i].style.gridRow.split('/')[0]) != Number(divsArray[i].getAttribute('target-row')) || Number(divsArray[i].style.gridColumn.split('/')[0]) != Number(divsArray[i].getAttribute('target-column'))){
+                return ;
+            }
+        }
+        winnerDiv.style.display = ''
+    }
+    const randomisePositions = (array, rowsCount, columnsCount) => {
+        const positionsArray = []
+
+        for( let i = 0 ; i < array.length ; i++ ){
+            let rowNumber = 0
+            let columnNumber = 0
+            do{
+                rowNumber = Math.floor(Math.random() * rowsCount) + 1;
+                columnNumber = Math.floor(Math.random() * columnsCount) + 1;
+            }
+            while ( positionsArray.find(el => el[0] == rowNumber && el[1] == columnNumber ));
+
+            positionsArray.push([rowNumber, columnNumber])
+            array[i].style.gridRow = rowNumber;
+            array[i].style.gridColumn = columnNumber;
+    }
+}
+
+</script>
